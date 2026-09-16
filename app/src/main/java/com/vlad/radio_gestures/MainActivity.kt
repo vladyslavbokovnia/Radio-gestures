@@ -28,7 +28,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var deltaText: TextView
     private lateinit var statusText: TextView
     private lateinit var spinner: Spinner
-    private val btAdapter = BluetoothAdapter.getDefaultAdapter()
+    private val btAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
     private var scanner: BluetoothLeScanner? = null
     private var scanning = false
     private var selectedAddress: String? = null
@@ -38,30 +38,38 @@ class MainActivity : AppCompatActivity() {
 
     private val classicReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            when (intent.action) {
-                BluetoothDevice.ACTION_FOUND -> {
-                    val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
-                    val rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt()
-                    if (device != null && rssi != Short.MIN_VALUE.toInt()) handle(device, rssi, "Classic")
-                }
-                BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-                    if (scanning && hasPermissions()) {
-                        try { btAdapter.startDiscovery() } catch (_: SecurityException) {}
+            try {
+                when (intent.action) {
+                    BluetoothDevice.ACTION_FOUND -> {
+                        val device = if (Build.VERSION.SDK_INT >= 33) {
+                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                        } else {
+                            @Suppress("DEPRECATION") intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                        }
+                        val rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt()
+                        if (device != null && rssi != Short.MIN_VALUE.toInt()) handle(device, rssi, "Classic")
+                    }
+                    BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
+                        if (scanning && hasPermissions()) {
+                            try { btAdapter?.startDiscovery() } catch (_: SecurityException) {}
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                showError(e)
             }
         }
     }
 
     private val bleCallback = object : ScanCallback() {
         override fun onScanResult(type: Int, result: ScanResult) {
-            handle(result.device, result.rssi, "BLE")
+            try { handle(result.device, result.rssi, "BLE") } catch (e: Exception) { showError(e) }
         }
         override fun onBatchScanResults(results: MutableList<ScanResult>) {
-            results.forEach { handle(it.device, it.rssi, "BLE") }
+            try { results.forEach { handle(it.device, it.rssi, "BLE") } } catch (e: Exception) { showError(e) }
         }
         override fun onScanFailed(errorCode: Int) {
-            runOnUiThread { statusText.text = "BLE ошибка: $errorCode (Classic продолжается)" }
+            if (::statusText.isInitialized) runOnUiThread { statusText.text = "BLE ошибка: $errorCode (Classic продолжается)" }
         }
     }
 
@@ -69,10 +77,33 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        buildUi()
-        registerClassicReceiver()
-        if (!hasPermissions()) ActivityCompat.requestPermissions(this, permissions(), permissionCode)
-        else loadDevices()
+        try {
+            buildUi()
+            if (btAdapter == null) {
+                statusText.text = "Bluetooth не поддерживается этим телефоном"
+                return
+            }
+            registerClassicReceiver()
+            if (!hasPermissions()) ActivityCompat.requestPermissions(this, permissions(), permissionCode)
+            else loadDevices()
+        } catch (e: Exception) {
+            showStartupError(e)
+        }
+    }
+
+    private fun showStartupError(e: Throwable) {
+        val message = "Ошибка запуска:\n${e.javaClass.simpleName}\n${e.message ?: "без сообщения"}"
+        setContentView(TextView(this).apply {
+            text = message
+            textSize = 18f
+            setPadding(30, 50, 30, 30)
+        })
+    }
+
+    private fun showError(e: Throwable) {
+        if (::statusText.isInitialized) runOnUiThread {
+            statusText.text = "Ошибка: ${e.javaClass.simpleName}: ${e.message ?: "без сообщения"}"
+        }
     }
 
     private fun permissions(): Array<String> = if (Build.VERSION.SDK_INT >= 31) {
@@ -88,7 +119,7 @@ class MainActivity : AppCompatActivity() {
     override fun onRequestPermissionsResult(requestCode: Int, p: Array<out String>, r: IntArray) {
         super.onRequestPermissionsResult(requestCode, p, r)
         if (requestCode == permissionCode && hasPermissions()) loadDevices()
-        else statusText.text = "Нужны разрешения Bluetooth/геолокации для сканирования"
+        else if (::statusText.isInitialized) statusText.text = "Нужны разрешения Bluetooth/геолокации для сканирования"
     }
 
     private fun registerClassicReceiver() {
@@ -140,7 +171,7 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener { if (scanning) stopScanning() else startScanning() }
         }
         val help = TextView(this).apply {
-            text = "Измеряем BLE-рекламу и Classic Bluetooth discovery. Если закрыть наушник рукой, смотрите на изменение RSSI." 
+            text = "Измеряем BLE-рекламу и Classic Bluetooth discovery. Если закрыть наушник рукой, смотрите на изменение RSSI."
             textSize = 15f
             setPadding(4, 8, 4, 4)
         }
@@ -156,12 +187,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadDevices() {
-        if (!btAdapter.isEnabled) {
+        val adapter = btAdapter ?: return
+        if (!adapter.isEnabled) {
             statusText.text = "Включите Bluetooth"
             return
         }
         val devices = try {
-            btAdapter.bondedDevices.toList().sortedBy { it.name ?: it.address }
+            adapter.bondedDevices.toList().sortedBy { it.name ?: it.address }
         } catch (_: SecurityException) {
             emptyList()
         }
@@ -183,26 +215,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startScanning() {
+        val adapter = btAdapter ?: return
         if (!hasPermissions()) {
             ActivityCompat.requestPermissions(this, permissions(), permissionCode)
             return
         }
-        if (!btAdapter.isEnabled) {
+        if (!adapter.isEnabled) {
             statusText.text = "Включите Bluetooth"
             return
         }
         scanning = true
         graph.clear()
         try {
-            scanner = btAdapter.bluetoothLeScanner
+            scanner = adapter.bluetoothLeScanner
             scanner?.startScan(bleCallback)
-        } catch (_: SecurityException) {
+        } catch (e: SecurityException) {
             scanner = null
+            showError(e)
         }
         try {
-            btAdapter.cancelDiscovery()
-            btAdapter.startDiscovery()
-        } catch (_: SecurityException) {}
+            adapter.cancelDiscovery()
+            adapter.startDiscovery()
+        } catch (e: SecurityException) {
+            showError(e)
+        }
         statusText.text = "BLE + Classic discovery сканирование…"
         handler.removeCallbacks(stopScan)
         handler.postDelayed(stopScan, 600_000)
@@ -211,10 +247,10 @@ class MainActivity : AppCompatActivity() {
     private fun stopScanning() {
         if (!scanning) return
         try { scanner?.stopScan(bleCallback) } catch (_: SecurityException) {}
-        try { btAdapter.cancelDiscovery() } catch (_: SecurityException) {}
+        try { btAdapter?.cancelDiscovery() } catch (_: SecurityException) {}
         handler.removeCallbacks(stopScan)
         scanning = false
-        statusText.text = "Остановлено"
+        if (::statusText.isInitialized) statusText.text = "Остановлено"
     }
 
     private fun handle(device: BluetoothDevice, rssi: Int, source: String) {
