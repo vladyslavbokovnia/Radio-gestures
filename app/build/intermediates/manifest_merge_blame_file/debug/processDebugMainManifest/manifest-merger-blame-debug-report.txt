@@ -1,0 +1,174 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.vlad.radio_gestures"
+4    android:versionCode="1"
+5    android:versionName="1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="35" />
+10
+11    <uses-permission
+11-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:2:5-95
+12        android:name="android.permission.BLUETOOTH"
+12-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:2:22-65
+13        android:maxSdkVersion="30" />
+13-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:2:66-92
+14    <uses-permission
+14-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:3:5-101
+15        android:name="android.permission.BLUETOOTH_ADMIN"
+15-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:3:22-71
+16        android:maxSdkVersion="30" />
+16-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:3:72-98
+17    <uses-permission
+17-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:4:5-120
+18        android:name="android.permission.BLUETOOTH_SCAN"
+18-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:4:22-70
+19        android:usesPermissionFlags="neverForLocation" />
+19-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:4:71-117
+20    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+20-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:5:5-76
+20-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:5:22-73
+21    <uses-permission
+21-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:6:5-106
+22        android:name="android.permission.ACCESS_FINE_LOCATION"
+22-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:6:22-76
+23        android:maxSdkVersion="30" />
+23-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:6:77-103
+24
+25    <permission
+25-->[androidx.core:core:1.15.0] /home/ubuntu/.gradle/caches/8.11.1/transforms/04a50db01a75948e7d21abb901016fbb/transformed/core-1.15.0/AndroidManifest.xml:22:5-24:47
+26        android:name="com.vlad.radio_gestures.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+26-->[androidx.core:core:1.15.0] /home/ubuntu/.gradle/caches/8.11.1/transforms/04a50db01a75948e7d21abb901016fbb/transformed/core-1.15.0/AndroidManifest.xml:23:9-81
+27        android:protectionLevel="signature" />
+27-->[androidx.core:core:1.15.0] /home/ubuntu/.gradle/caches/8.11.1/transforms/04a50db01a75948e7d21abb901016fbb/transformed/core-1.15.0/AndroidManifest.xml:24:9-44
+28
+29    <uses-permission android:name="com.vlad.radio_gestures.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+29-->[androidx.core:core:1.15.0] /home/ubuntu/.gradle/caches/8.11.1/transforms/04a50db01a75948e7d21abb901016fbb/transformed/core-1.15.0/AndroidManifest.xml:26:5-97
+29-->[androidx.core:core:1.15.0] /home/ubuntu/.gradle/caches/8.11.1/transforms/04a50db01a75948e7d21abb901016fbb/transformed/core-1.15.0/AndroidManifest.xml:26:22-94
+30    <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
+30-->[dev.rikka.shizuku:provider:13.1.5] /home/ubuntu/.gradle/caches/8.11.1/transforms/6a02346bb8abe80ae666a8f46144344c/transformed/provider-13.1.5/AndroidManifest.xml:8:5-78
+30-->[dev.rikka.shizuku:provider:13.1.5] /home/ubuntu/.gradle/caches/8.11.1/transforms/6a02346bb8abe80ae666a8f46144344c/transformed/provider-13.1.5/AndroidManifest.xml:8:22-75
+31
+32    <application
+32-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:7:5-20:19
+33        android:allowBackup="false"
+33-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:7:81-108
+34        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+34-->[androidx.core:core:1.15.0] /home/ubuntu/.gradle/caches/8.11.1/transforms/04a50db01a75948e7d21abb901016fbb/transformed/core-1.15.0/AndroidManifest.xml:28:18-86
+35        android:debuggable="true"
+36        android:extractNativeLibs="false"
+37        android:label="Radio Gestures"
+37-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:7:50-80
+38        android:supportsRtl="true"
+38-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:7:109-135
+39        android:theme="@style/AppTheme" >
+39-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:7:18-49
+40        <activity
+40-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:8:9-12:20
+41            android:name="com.vlad.radio_gestures.MainActivity"
+41-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:8:19-47
+42            android:exported="true"
+42-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:8:85-108
+43            android:screenOrientation="portrait" >
+43-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:8:48-84
+44            <intent-filter>
+44-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:9:13-11:29
+45                <action android:name="android.intent.action.MAIN" />
+45-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:10:17-68
+45-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:10:25-66
+46
+47                <category android:name="android.intent.category.LAUNCHER" />
+47-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:10:68-127
+47-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:10:78-125
+48            </intent-filter>
+49        </activity>
+50
+51        <provider
+52            android:name="rikka.shizuku.ShizukuProvider"
+52-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:14:13-57
+53            android:authorities="com.vlad.radio_gestures.shizuku"
+53-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:15:13-59
+54            android:enabled="true"
+54-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:17:13-35
+55            android:exported="true"
+55-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:18:13-36
+56            android:multiprocess="false"
+56-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:16:13-41
+57            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+57-->/tmp/Radio-gestures-repo/app/src/main/AndroidManifest.xml:19:13-79
+58        <provider
+58-->[androidx.emoji2:emoji2:1.3.0] /home/ubuntu/.gradle/caches/8.11.1/transforms/24ca809d090882475229cd07b0858eb1/transformed/emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
+59            android:name="androidx.startup.InitializationProvider"
+59-->[androidx.emoji2:emoji2:1.3.0] /home/ubuntu/.gradle/caches/8.11.1/transforms/24ca809d090882475229cd07b0858eb1/transformed/emoji2-1.3.0/AndroidManifest.xml:25:13-67
+60            android:authorities="com.vlad.radio_gestures.androidx-startup"
+60-->[androidx.emoji2:emoji2:1.3.0] /home/ubuntu/.gradle/caches/8.11.1/transforms/24ca809d090882475229cd07b0858eb1/transformed/emoji2-1.3.0/AndroidManifest.xml:26:13-68
+61            android:exported="false" >
+61-->[androidx.emoji2:emoji2:1.3.0] /home/ubuntu/.gradle/caches/8.11.1/transforms/24ca809d090882475229cd07b0858eb1/transformed/emoji2-1.3.0/AndroidManifest.xml:27:13-37
+62            <meta-data
+62-->[androidx.emoji2:emoji2:1.3.0] /home/ubuntu/.gradle/caches/8.11.1/transforms/24ca809d090882475229cd07b0858eb1/transformed/emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
+63                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+63-->[androidx.emoji2:emoji2:1.3.0] /home/ubuntu/.gradle/caches/8.11.1/transforms/24ca809d090882475229cd07b0858eb1/transformed/emoji2-1.3.0/AndroidManifest.xml:30:17-75
+64                android:value="androidx.startup" />
+64-->[androidx.emoji2:emoji2:1.3.0] /home/ubuntu/.gradle/caches/8.11.1/transforms/24ca809d090882475229cd07b0858eb1/transformed/emoji2-1.3.0/AndroidManifest.xml:31:17-49
+65            <meta-data
+65-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/ubuntu/.gradle/caches/8.11.1/transforms/545b3d7497697af29451c39adc410b58/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:29:13-31:52
+66                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+66-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/ubuntu/.gradle/caches/8.11.1/transforms/545b3d7497697af29451c39adc410b58/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:30:17-78
+67                android:value="androidx.startup" />
+67-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/ubuntu/.gradle/caches/8.11.1/transforms/545b3d7497697af29451c39adc410b58/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:31:17-49
+68            <meta-data
+68-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
+69                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+69-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
+70                android:value="androidx.startup" />
+70-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
+71        </provider>
+72
+73        <meta-data
+73-->[dev.rikka.shizuku:provider:13.1.5] /home/ubuntu/.gradle/caches/8.11.1/transforms/6a02346bb8abe80ae666a8f46144344c/transformed/provider-13.1.5/AndroidManifest.xml:11:9-13:36
+74            android:name="moe.shizuku.client.V3_SUPPORT"
+74-->[dev.rikka.shizuku:provider:13.1.5] /home/ubuntu/.gradle/caches/8.11.1/transforms/6a02346bb8abe80ae666a8f46144344c/transformed/provider-13.1.5/AndroidManifest.xml:12:13-57
+75            android:value="true" />
+75-->[dev.rikka.shizuku:provider:13.1.5] /home/ubuntu/.gradle/caches/8.11.1/transforms/6a02346bb8abe80ae666a8f46144344c/transformed/provider-13.1.5/AndroidManifest.xml:13:13-33
+76
+77        <receiver
+77-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
+78            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+78-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
+79            android:directBootAware="false"
+79-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
+80            android:enabled="true"
+80-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
+81            android:exported="true"
+81-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
+82            android:permission="android.permission.DUMP" >
+82-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
+83            <intent-filter>
+83-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
+84                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+84-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
+84-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
+85            </intent-filter>
+86            <intent-filter>
+86-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
+87                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+87-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
+87-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
+88            </intent-filter>
+89            <intent-filter>
+89-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
+90                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+90-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
+90-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
+91            </intent-filter>
+92            <intent-filter>
+92-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
+93                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+93-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
+93-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/ubuntu/.gradle/caches/8.11.1/transforms/fab1b08425cc0fa9866b016974a370de/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
+94            </intent-filter>
+95        </receiver>
+96    </application>
+97
+98</manifest>

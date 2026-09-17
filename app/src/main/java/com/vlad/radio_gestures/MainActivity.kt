@@ -1,6 +1,7 @@
 package com.vlad.radio_gestures
 
 import android.Manifest
+import android.app.AlertDialog
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.le.BluetoothLeScanner
@@ -21,6 +22,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import java.util.Locale
+import rikka.shizuku.Shizuku
 
 class MainActivity : AppCompatActivity() {
     private lateinit var graph: SignalGraph
@@ -35,6 +37,24 @@ class MainActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private val stopScan = Runnable { stopScanning() }
     private var receiverRegistered = false
+    private lateinit var shizukuStatusText: TextView
+    private var shizukuPollRunning = false
+    private val shizukuPollIntervalMs = 1500L
+    private val shizukuPollTask: Runnable = object : Runnable {
+        override fun run() {
+            pollShizukuOnce()
+            if (scanning) handler.postDelayed(this, shizukuPollIntervalMs)
+        }
+    }
+    private val shizukuPermissionListener =
+        Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
+            if (requestCode == ShizukuRssi.REQUEST_CODE) {
+                runOnUiThread { updateShizukuStatus() }
+            }
+        }
+    private val shizukuBinderListener = Shizuku.OnBinderReceivedListener {
+        runOnUiThread { updateShizukuStatus() }
+    }
 
     private val classicReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -86,8 +106,24 @@ class MainActivity : AppCompatActivity() {
             registerClassicReceiver()
             if (!hasPermissions()) ActivityCompat.requestPermissions(this, permissions(), permissionCode)
             else loadDevices()
+
+            Shizuku.addBinderReceivedListenerSticky(shizukuBinderListener)
+            Shizuku.addRequestPermissionResultListener(shizukuPermissionListener)
+            updateShizukuStatus()
+            if (ShizukuRssi.isBinderAlive() && !ShizukuRssi.hasPermission()) {
+                ShizukuRssi.requestPermission()
+            }
         } catch (e: Exception) {
             showStartupError(e)
+        }
+    }
+
+    private fun updateShizukuStatus() {
+        if (!::shizukuStatusText.isInitialized) return
+        shizukuStatusText.text = when {
+            !ShizukuRssi.isBinderAlive() -> "Shizuku: сервис не запущен"
+            !ShizukuRssi.hasPermission() -> "Shizuku: запущен, разрешение не выдано"
+            else -> "Shizuku: готов (dumpsys RSSI подключённых устройств)"
         }
     }
 
@@ -171,9 +207,19 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener { if (scanning) stopScanning() else startScanning() }
         }
         val help = TextView(this).apply {
-            text = "Измеряем BLE-рекламу и Classic Bluetooth discovery. Если закрыть наушник рукой, смотрите на изменение RSSI."
+            text = "Измеряем BLE-рекламу, Classic Bluetooth discovery и (если доступен Shizuku) RSSI уже подключённых устройств через dumpsys."
             textSize = 15f
             setPadding(4, 8, 4, 4)
+        }
+        shizukuStatusText = TextView(this).apply {
+            text = "Shizuku: проверка…"
+            textSize = 13f
+            gravity = Gravity.CENTER
+            setPadding(0, 4, 0, 4)
+        }
+        val rawDumpButton = Button(this).apply {
+            text = "Показать сырой dumpsys"
+            setOnClickListener { showRawDumpsys() }
         }
         root.addView(title)
         root.addView(spinner)
@@ -181,7 +227,9 @@ class MainActivity : AppCompatActivity() {
         root.addView(deltaText)
         root.addView(graph, LinearLayout.LayoutParams(-1, 0, 1f))
         root.addView(statusText)
+        root.addView(shizukuStatusText)
         root.addView(start)
+        root.addView(rawDumpButton)
         root.addView(help)
         setContentView(root)
     }
@@ -242,6 +290,11 @@ class MainActivity : AppCompatActivity() {
         statusText.text = "BLE + Classic discovery сканирование…"
         handler.removeCallbacks(stopScan)
         handler.postDelayed(stopScan, 600_000)
+
+        if (ShizukuRssi.hasPermission() && !shizukuPollRunning) {
+            shizukuPollRunning = true
+            handler.post(shizukuPollTask)
+        }
     }
 
     private fun stopScanning() {
@@ -249,8 +302,56 @@ class MainActivity : AppCompatActivity() {
         try { scanner?.stopScan(bleCallback) } catch (_: SecurityException) {}
         try { btAdapter?.cancelDiscovery() } catch (_: SecurityException) {}
         handler.removeCallbacks(stopScan)
+        handler.removeCallbacks(shizukuPollTask)
+        shizukuPollRunning = false
         scanning = false
         if (::statusText.isInitialized) statusText.text = "Остановлено"
+    }
+
+    /** Один опрос dumpsys bluetooth_manager в фоновом потоке, без блокировки UI. */
+    private fun pollShizukuOnce() {
+        val wanted = selectedAddress ?: return
+        if (!ShizukuRssi.hasPermission()) return
+        Thread {
+            try {
+                val (out, _) = ShizukuRssi.exec(arrayOf("sh", "-c", "dumpsys bluetooth_manager"))
+                val rssi = ShizukuRssi.extractRssiForAddress(out, wanted)
+                if (rssi != null) handleAddress(wanted, rssi, "Shizuku/dumpsys")
+            } catch (e: Exception) {
+                runOnUiThread { updateShizukuStatus() }
+            }
+        }.start()
+    }
+
+    /** Показывает полный необработанный вывод dumpsys — чтобы вручную найти формат RSSI на конкретном телефоне. */
+    private fun showRawDumpsys() {
+        if (!ShizukuRssi.hasPermission()) {
+            statusText.text = "Сначала выдай разрешение приложению в Shizuku"
+            ShizukuRssi.requestPermission()
+            return
+        }
+        Thread {
+            val (out, err) = try {
+                ShizukuRssi.exec(arrayOf("sh", "-c", "dumpsys bluetooth_manager"))
+            } catch (e: Exception) {
+                "" to "Ошибка: ${e.javaClass.simpleName}: ${e.message}"
+            }
+            runOnUiThread {
+                val scroll = ScrollView(this)
+                val text = TextView(this).apply {
+                    setText(if (out.isNotBlank()) out else err.ifBlank { "Пусто" })
+                    textSize = 11f
+                    setPadding(20, 20, 20, 20)
+                    setTextIsSelectable(true)
+                }
+                scroll.addView(text)
+                AlertDialog.Builder(this)
+                    .setTitle("dumpsys bluetooth_manager")
+                    .setView(scroll)
+                    .setPositiveButton("Закрыть", null)
+                    .show()
+            }
+        }.start()
     }
 
     private fun handle(device: BluetoothDevice, rssi: Int, source: String) {
@@ -264,11 +365,28 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** То же самое, что handle(), но для данных, у которых есть только MAC-адрес (dumpsys). */
+    private fun handleAddress(address: String, rssi: Int, source: String) {
+        val wanted = selectedAddress ?: return
+        if (!address.equals(wanted, ignoreCase = true)) return
+        runOnUiThread {
+            graph.add(rssi)
+            valueText.text = String.format(Locale.US, "%d dBm", rssi)
+            deltaText.text = String.format(Locale.US, "Изменение: %+d dB", graph.delta())
+            statusText.text = "$source: $address"
+        }
+    }
+
     override fun onDestroy() {
         stopScanning()
         if (receiverRegistered) {
             try { unregisterReceiver(classicReceiver) } catch (_: Exception) {}
             receiverRegistered = false
+        }
+        try {
+            Shizuku.removeBinderReceivedListener(shizukuBinderListener)
+            Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener)
+        } catch (_: Throwable) {
         }
         super.onDestroy()
     }
