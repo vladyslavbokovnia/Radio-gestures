@@ -173,6 +173,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun buildUi() {
+        val outer = ScrollView(this)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(20, 20, 20, 10)
@@ -202,6 +203,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, 5, 0, 5)
         }
         graph = SignalGraph(this)
+        val graphHeightPx = (220 * resources.displayMetrics.density).toInt()
         val start = Button(this).apply {
             text = "СТАРТ / СТОП"
             setOnClickListener { if (scanning) stopScanning() else startScanning() }
@@ -225,13 +227,14 @@ class MainActivity : AppCompatActivity() {
         root.addView(spinner)
         root.addView(valueText)
         root.addView(deltaText)
-        root.addView(graph, LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(graph, LinearLayout.LayoutParams(-1, graphHeightPx))
         root.addView(statusText)
         root.addView(shizukuStatusText)
         root.addView(start)
         root.addView(rawDumpButton)
         root.addView(help)
-        setContentView(root)
+        outer.addView(root)
+        setContentView(outer)
     }
 
     private fun loadDevices() {
@@ -308,7 +311,6 @@ class MainActivity : AppCompatActivity() {
         if (::statusText.isInitialized) statusText.text = "Остановлено"
     }
 
-    /** Один опрос dumpsys bluetooth_manager в фоновом потоке, без блокировки UI. */
     private fun pollShizukuOnce() {
         val wanted = selectedAddress ?: return
         if (!ShizukuRssi.hasPermission()) return
@@ -323,13 +325,13 @@ class MainActivity : AppCompatActivity() {
         }.start()
     }
 
-    /** Показывает полный необработанный вывод dumpsys — чтобы вручную найти формат RSSI на конкретном телефоне. */
     private fun showRawDumpsys() {
         if (!ShizukuRssi.hasPermission()) {
             statusText.text = "Сначала выдай разрешение приложению в Shizuku"
             ShizukuRssi.requestPermission()
             return
         }
+        Toast.makeText(this, "Выполняю dumpsys…", Toast.LENGTH_SHORT).show()
         Thread {
             val (out, err) = try {
                 ShizukuRssi.exec(arrayOf("sh", "-c", "dumpsys bluetooth_manager"))
@@ -337,18 +339,29 @@ class MainActivity : AppCompatActivity() {
                 "" to "Ошибка: ${e.javaClass.simpleName}: ${e.message}"
             }
             runOnUiThread {
-                val scroll = ScrollView(this)
+                val scroll = ScrollView(this).apply {
+                    minimumWidth = (280 * resources.displayMetrics.density).toInt()
+                    minimumHeight = (200 * resources.displayMetrics.density).toInt()
+                }
                 val text = TextView(this).apply {
-                    setText(if (out.isNotBlank()) out else err.ifBlank { "Пусто" })
+                    setText(if (out.isNotBlank()) out else err.ifBlank { "(пусто — команда не вернула ничего)" })
                     textSize = 11f
                     setPadding(20, 20, 20, 20)
                     setTextIsSelectable(true)
+                    setTextColor(android.graphics.Color.WHITE)
+                    setBackgroundColor(android.graphics.Color.BLACK)
                 }
                 scroll.addView(text)
+                val fullText = if (out.isNotBlank()) out else err
                 AlertDialog.Builder(this)
-                    .setTitle("dumpsys bluetooth_manager")
+                    .setTitle("dumpsys (stdout: ${out.length} симв., stderr: ${err.length} симв.)")
                     .setView(scroll)
-                    .setPositiveButton("Закрыть", null)
+                    .setPositiveButton("Копировать") { _, _ ->
+                        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        cm.setPrimaryClip(android.content.ClipData.newPlainText("dumpsys", fullText))
+                        Toast.makeText(this, "Скопировано (${fullText.length} симв.)", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Закрыть", null)
                     .show()
             }
         }.start()
@@ -365,7 +378,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** То же самое, что handle(), но для данных, у которых есть только MAC-адрес (dumpsys). */
     private fun handleAddress(address: String, rssi: Int, source: String) {
         val wanted = selectedAddress ?: return
         if (!address.equals(wanted, ignoreCase = true)) return

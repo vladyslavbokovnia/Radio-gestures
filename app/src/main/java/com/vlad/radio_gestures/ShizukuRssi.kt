@@ -2,24 +2,16 @@ package com.vlad.radio_gestures
 
 import rikka.shizuku.Shizuku
 
-/**
- * Тонкая обёртка над Shizuku: проверка доступности, запрос разрешения
- * и выполнение shell-команды в привилегированном процессе через рефлексию
- * (Shizuku.newProcess официально скрыт из публичного API, но всё ещё
- * работает в текущей версии библиотеки — см. RikkaApps/Shizuku-API#276).
- */
 object ShizukuRssi {
 
     const val REQUEST_CODE = 7001
 
-    /** Бинарник Shizuku получен (сервис запущен и подключение установлено). */
     fun isBinderAlive(): Boolean = try {
         Shizuku.pingBinder()
     } catch (_: Throwable) {
         false
     }
 
-    /** Разрешение приложению уже выдано (не спрашивая заново). */
     fun hasPermission(): Boolean = try {
         isBinderAlive() && Shizuku.checkSelfPermission() == android.content.pm.PackageManager.PERMISSION_GRANTED
     } catch (_: Throwable) {
@@ -35,11 +27,6 @@ object ShizukuRssi {
         }
     }
 
-    /**
-     * Выполняет команду в shell-процессе Shizuku и возвращает (stdout, stderr).
-     * Бросает исключение, если бинарник не подключён или нет разрешения —
-     * вызывающий код должен сам проверить hasPermission() заранее.
-     */
     fun exec(command: Array<String>): Pair<String, String> {
         val clazz = Class.forName("rikka.shizuku.Shizuku")
         val method = clazz.getDeclaredMethod(
@@ -63,12 +50,6 @@ object ShizukuRssi {
         return out to err
     }
 
-    /**
-     * Ищет в тексте dumpsys RSSI, относящийся к конкретному MAC-адресу.
-     * Формат вывода отличается на разных прошивках/чипах, поэтому ищем
-     * адрес и берём ближайшее упоминание "rssi: <число>" в пределах
-     * следующих ~400 символов после адреса.
-     */
     fun extractRssiForAddress(dumpsysOutput: String, address: String): Int? {
         val addrIndex = dumpsysOutput.indexOf(address, ignoreCase = true)
         if (addrIndex == -1) return null

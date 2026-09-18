@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId = "com.vlad.radio_gestures"
-        minSdk = 24
+        minSdk = 23
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
