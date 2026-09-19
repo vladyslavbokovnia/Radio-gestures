@@ -21,6 +21,9 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
+import android.view.KeyEvent
 import java.util.Locale
 import rikka.shizuku.Shizuku
 
@@ -55,6 +58,13 @@ class MainActivity : AppCompatActivity() {
     private val shizukuBinderListener = Shizuku.OnBinderReceivedListener {
         runOnUiThread { updateShizukuStatus() }
     }
+    private lateinit var gestureLogText: TextView
+    private val gestureLines = ArrayDeque<String>()
+    private var lastDisconnectAtMs: Long = 0L
+    private val disconnectPulseWindowMs = 4000L
+    private val recentDisconnects = ArrayDeque<Long>()
+    private var mediaSession: MediaSessionCompat? = null
+    private val gestureWindowMs = 2500L
 
     private val classicReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -74,10 +84,52 @@ class MainActivity : AppCompatActivity() {
                             try { btAdapter?.startDiscovery() } catch (_: SecurityException) {}
                         }
                     }
+                    BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                        val device = getDeviceExtra(intent)
+                        if (device != null) logGestureEvent(device.address, connected = false)
+                    }
+                    BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                        val device = getDeviceExtra(intent)
+                        if (device != null) logGestureEvent(device.address, connected = true)
+                    }
                 }
             } catch (e: Exception) {
                 showError(e)
             }
+        }
+    }
+
+    private fun getDeviceExtra(intent: Intent): BluetoothDevice? = if (Build.VERSION.SDK_INT >= 33) {
+        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+    } else {
+        @Suppress("DEPRECATION") intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+    }
+
+    private fun logGestureEvent(address: String, connected: Boolean) {
+        val wanted = selectedAddress
+        if (wanted != null && !address.equals(wanted, ignoreCase = true)) return
+        val now = System.currentTimeMillis()
+        val time = java.text.SimpleDateFormat("HH:mm:ss.SSS", Locale.US).format(java.util.Date(now))
+        val line: String
+        if (!connected) {
+            recentDisconnects.addLast(now)
+            while (recentDisconnects.isNotEmpty() && now - recentDisconnects.first() > disconnectPulseWindowMs) {
+                recentDisconnects.removeFirst()
+            }
+            lastDisconnectAtMs = now
+            line = "$time  ОТКЛЮЧЕНИЕ  (разрывов подряд за ${disconnectPulseWindowMs / 1000}с: ${recentDisconnects.size})"
+        } else {
+            val gap = if (lastDisconnectAtMs > 0) now - lastDisconnectAtMs else -1L
+            line = if (gap in 0..60_000) {
+                "$time  ПОДКЛЮЧЕНИЕ  (был отключён ${gap} мс)"
+            } else {
+                "$time  ПОДКЛЮЧЕНИЕ"
+            }
+        }
+        runOnUiThread {
+            gestureLines.addFirst(line)
+            while (gestureLines.size > 30) gestureLines.removeLast()
+            if (::gestureLogText.isInitialized) gestureLogText.text = gestureLines.joinToString("\n")
         }
     }
 
@@ -113,9 +165,71 @@ class MainActivity : AppCompatActivity() {
             if (ShizukuRssi.isBinderAlive() && !ShizukuRssi.hasPermission()) {
                 ShizukuRssi.requestPermission()
             }
+
+            if (btAdapter != null) {
+                BtProfileControl.init(this, btAdapter) {
+                    runOnUiThread { statusText.text = "Профили A2DP/Headset подключены — жест play/pause активен" }
+                }
+            }
+            setupMediaSession()
         } catch (e: Exception) {
             showStartupError(e)
         }
+    }
+
+    private fun setupMediaSession() {
+        val session = MediaSessionCompat(this, "RadioGesturesSession")
+        session.setFlags(
+            MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or
+                MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
+        )
+        session.setCallback(object : MediaSessionCompat.Callback() {
+            override fun onPlay() { onGestureTriggered() }
+            override fun onPause() { onGestureTriggered() }
+            override fun onMediaButtonEvent(mediaButtonIntent: Intent): Boolean {
+                val event = mediaButtonIntent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT)
+                if (event != null && event.action == KeyEvent.ACTION_DOWN &&
+                    event.keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                ) {
+                    onGestureTriggered()
+                    return true
+                }
+                return super.onMediaButtonEvent(mediaButtonIntent)
+            }
+        })
+        val state = PlaybackStateCompat.Builder()
+            .setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE or PlaybackStateCompat.ACTION_PLAY or PlaybackStateCompat.ACTION_PAUSE)
+            .setState(PlaybackStateCompat.STATE_PLAYING, 0, 1f)
+            .build()
+        session.setPlaybackState(state)
+        session.isActive = true
+        mediaSession = session
+    }
+
+    private fun onGestureTriggered() {
+        val address = selectedAddress
+        val adapter = btAdapter
+        if (address == null || adapter == null) {
+            runOnUiThread { Toast.makeText(this, "Жест поймал, но устройство не выбрано в списке", Toast.LENGTH_SHORT).show() }
+            return
+        }
+        val device = try { adapter.getRemoteDevice(address) } catch (_: Exception) { null }
+        if (device == null) return
+        runOnUiThread { Toast.makeText(this, "Жест: play/pause -> отключаю наушник", Toast.LENGTH_SHORT).show() }
+        val disconnectOk = try { BtProfileControl.disconnect(device) } catch (e: Exception) { showError(e); false }
+        runOnUiThread {
+            statusText.text = if (disconnectOk) "Отключаю для жеста…" else "Не удалось отключить (профили ещё не готовы?)"
+        }
+        handler.postDelayed({
+            val connectOk = try { BtProfileControl.connect(device) } catch (e: Exception) { showError(e); false }
+            runOnUiThread {
+                Toast.makeText(
+                    this,
+                    if (connectOk) "Подключаю обратно…" else "Не удалось переподключить — подключи вручную",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }, gestureWindowMs)
     }
 
     private fun updateShizukuStatus() {
@@ -163,6 +277,8 @@ class MainActivity : AppCompatActivity() {
         val filter = IntentFilter().apply {
             addAction(BluetoothDevice.ACTION_FOUND)
             addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+            addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
         }
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(classicReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
@@ -223,6 +339,17 @@ class MainActivity : AppCompatActivity() {
             text = "Показать сырой dumpsys"
             setOnClickListener { showRawDumpsys() }
         }
+        val gestureLabel = TextView(this).apply {
+            text = "Лог подключений/отключений (потенциальные жесты):"
+            textSize = 13f
+            setPadding(0, 12, 0, 2)
+        }
+        gestureLogText = TextView(this).apply {
+            text = "Пока событий нет — нажми кнопку на наушнике"
+            textSize = 11f
+            setTextIsSelectable(true)
+            setPadding(8, 4, 8, 12)
+        }
         root.addView(title)
         root.addView(spinner)
         root.addView(valueText)
@@ -232,6 +359,8 @@ class MainActivity : AppCompatActivity() {
         root.addView(shizukuStatusText)
         root.addView(start)
         root.addView(rawDumpButton)
+        root.addView(gestureLabel)
+        root.addView(gestureLogText)
         root.addView(help)
         outer.addView(root)
         setContentView(outer)
@@ -400,6 +529,7 @@ class MainActivity : AppCompatActivity() {
             Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener)
         } catch (_: Throwable) {
         }
+        try { mediaSession?.isActive = false; mediaSession?.release() } catch (_: Throwable) {}
         super.onDestroy()
     }
 }
